@@ -1,1 +1,1 @@
-# Fake-New-Detector
+# Fake-News-Detector
