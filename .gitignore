@@ -1,0 +1,22 @@
+# Environment variables
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.Python
+
+# Model files (large - rebuild locally using build_model.py)
+model/model.pkl
+model/vectorizer.pkl
+model/model_output/
+
+# macOS
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Database
+model/feedback_database.db

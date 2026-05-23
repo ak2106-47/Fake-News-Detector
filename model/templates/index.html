@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake Content Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+
+        textarea {
+            width: 50%;
+            height: 100px;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #result {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .fact-check {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 50px;
+            margin-top: 20px;
+        }
+
+        .fact-check-container {
+            width: 45%;
+            text-align: left;
+        }
+
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 5px;
+        }
+
+        .feedback-message {
+            margin-top: 10px;
+            color: green;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .show-message {
+            opacity: 1;
+        }
+
+        /* Feedback form */
+        #feedback-form {
+            display: none; /* Hidden by default */
+            max-width: 500px;
+            margin: 20px auto;
+            text-align: left;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        #feedback-form h3 {
+            margin-top: 0;
+            color: #007bff;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .rating-group {
+            display: flex;
+            justify-content: space-between;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .rating-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .rating-label {
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Fake Content Detection</h1>
+    <p>Enter a claim below and check for fact-checking results.</p>
+
+    <form id="predict-form">
+        <textarea name="text" placeholder="Enter text here..."></textarea><br><br>
+        <button type="submit">Check</button>
+    </form>
+
+    <p id="result"></p>
+    <p id="feedback-message" class="feedback-message">Thank you for your feedback!</p>
+
+    <!-- Feedback Form (hidden by default) -->
+    <div id="feedback-form">
+        <h3>Help Us Improve</h3>
+        <p>Please let us know your assessment of this content:</p>
+
+        <div class="form-group">
+            <label for="correct-classification">What's the correct classification?</label>
+            <select id="correct-classification" class="form-control">
+                <option value="">Select an option</option>
+                <option value="Genuine">Genuine Content</option>
+                <option value="Fake">Fake Content</option>
+                <option value="Partially Fake">Partially Fake</option>
+                <option value="Unsure">Unsure</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>How confident are you in your assessment?</label>
+            <div class="rating-group">
+                <div class="rating-item">
+                    <input type="radio" name="confidence" id="confidence-1" value="1">
+                    <label class="rating-label" for="confidence-1">Not confident</label>
+                </div>
+                <div class="rating-item">
+                    <input type="radio" name="confidence" id="confidence-3" value="3">
+                    <label class="rating-label" for="confidence-3">Somewhat</label>
+                </div>
+                <div class="rating-item">
+                    <input type="radio" name="confidence" id="confidence-5" value="5">
+                    <label class="rating-label" for="confidence-5">Very confident</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="button" class="button" id="submit-feedback">Submit Feedback</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Google Fact Check Results -->
+        <div class="fact-check-container">
+            <h2>Google Fact Check Results:</h2>
+            <div id="google-fact-check-results"></div>
+        </div>
+
+        <!-- ClaimBuster Check-Worthiness Score -->
+        <div class="fact-check-container">
+            <h2>ClaimBuster Check-Worthiness Score:</h2>
+            <div id="claimbuster-score-results"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ClaimBuster Knowledge Base Results -->
+        <div class="fact-check-container">
+            <h2>ClaimBuster Knowledge Base:</h2>
+            <div id="claimbuster-kb-results"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("predict-form").onsubmit = async function (e) {
+            e.preventDefault();
+            let formData = new FormData(this);
+            let response = await fetch("/predict", {
+                method: "POST",
+                body: formData
+            });
+            let data = await response.json();
+
+            // Store the current claim text and prediction for feedback submission
+            window.currentClaimText = formData.get("text");
+            window.currentPrediction = data.model_prediction;
+
+            document.getElementById("result").innerText = "Model Prediction: " + data.model_prediction;
+
+            // Hide any previous feedback message
+            document.getElementById("feedback-message").classList.remove("show-message");
+
+            // Reset and show feedback form
+            document.getElementById("correct-classification").value = "";
+            const checkedRadio = document.querySelector('input[name="confidence"]:checked');
+            if (checkedRadio) checkedRadio.checked = false;
+            document.getElementById("feedback-form").style.display = "block";
+
+            // Google Fact Check Results
+            let googleFactCheckDiv = document.getElementById("google-fact-check-results");
+            googleFactCheckDiv.innerHTML = "";
+
+            if (data.fact_check_results && data.fact_check_results.length > 0) {
+                data.fact_check_results.forEach(claim => {
+                    let factHTML = `
+                        <div class='fact-check'>
+                            <p><strong>Claim:</strong> ${claim.claim_text}</p>
+                            <p><strong>Rating:</strong> ${claim.rating}</p>
+                        </div>
+                    `;
+                    googleFactCheckDiv.innerHTML += factHTML;
+                });
+            } else {
+                googleFactCheckDiv.innerHTML = "<p>No fact-checking data available from Google.</p>";
+            }
+
+            // ClaimBuster Score Results
+            let claimbusterScoreDiv = document.getElementById("claimbuster-score-results");
+            claimbusterScoreDiv.innerHTML = "";
+
+            if (data.claimbuster_score && data.claimbuster_score.length > 0) {
+                data.claimbuster_score.forEach(claim => {
+                    let factHTML = `
+                        <div class='fact-check'>
+                            <p><strong>Claim:</strong> ${claim.text}</p>
+                            <p><strong>Check-worthiness Score:</strong> ${claim.score}</p>
+                        </div>
+                    `;
+                    claimbusterScoreDiv.innerHTML += factHTML;
+                });
+            } else {
+                claimbusterScoreDiv.innerHTML = "<p>No check-worthy claims detected by ClaimBuster.</p>";
+            }
+
+            // ClaimBuster Knowledge Base Results
+            let claimbusterKBResultsDiv = document.getElementById("claimbuster-kb-results");
+            claimbusterKBResultsDiv.innerHTML = "";
+
+            if (data.claimbuster_kb_results && data.claimbuster_kb_results.length > 0) {
+                data.claimbuster_kb_results.forEach(result => {
+                    let factHTML = `
+                    <div class='fact-check'>
+                        <p><strong>Claim:</strong> ${result.claim_text}</p>
+                        <p><strong>Verdict:</strong> ${result.verdict}</p>
+                        <p><strong>Source:</strong> ${result.source}</p>
+                        <p><strong>Justification:</strong> ${result.justification}</p>
+                    </div>`;
+                    claimbusterKBResultsDiv.innerHTML += factHTML;
+                });
+            } else {
+                claimbusterKBResultsDiv.innerHTML = "<p>No matching claims found in ClaimBuster Knowledge Base.</p>";
+            }
+        };
+
+        // Submit feedback
+        document.getElementById("submit-feedback").addEventListener("click", async function() {
+            // Get form values
+            const correctClassification = document.getElementById("correct-classification").value;
+            const confidenceLevel = document.querySelector('input[name="confidence"]:checked')?.value || 0;
+
+            // Validate inputs
+            if (!correctClassification || !confidenceLevel) {
+                alert("Please provide both classification and confidence level");
+                return;
+            }
+
+            try {
+                const response = await fetch("/submit-feedback", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        claim_text: window.currentClaimText,
+                        feedback_type: "classification",
+                        prediction_result: window.currentPrediction,
+                        correct_classification: correctClassification,
+                        confidence_level: confidenceLevel,
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    // Hide the feedback form
+                    document.getElementById("feedback-form").style.display = "none";
+
+                    // Show thank you message
+                    const feedbackMessage = document.getElementById("feedback-message");
+                    feedbackMessage.classList.add("show-message");
+
+                    // Hide the message after 3 seconds
+                    setTimeout(() => {
+                        feedbackMessage.classList.remove("show-message");
+                    }, 3000);
+                } else {
+                    console.error("Failed to submit feedback");
+                }
+            } catch (error) {
+                console.error("Error submitting feedback:", error);
+            }
+        });
+    </script>
+</body>
+
+</html>
